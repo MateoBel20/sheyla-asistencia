@@ -29,6 +29,26 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
   }
 
   Future<void> _logout() async {
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text("Cerrar sesión"),
+      content: const Text("¿Estás seguro que quieres cerrar sesión?"),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false), // Cancelar
+          child: const Text("Cancelar"),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(true), // Confirmar
+          child: const Text("Cerrar sesión"),
+        ),
+      ],
+    ),
+  );
+
+  // Si el usuario confirma, se cierra la sesión
+  if (confirm == true) {
     await AuthService.logout();
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
@@ -37,6 +57,7 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
       (route) => false,
     );
   }
+}
 
   void _goToTakeAttendance() {
     // TODO: implementar la pantalla "Tomar asistencia"
