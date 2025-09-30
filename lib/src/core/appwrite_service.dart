@@ -9,30 +9,33 @@ class AppwriteService {
     ..setProject(APPWRITE_PROJECT_ID);
 
   static final Databases databases = Databases(client);
+
   // Crear documento de asistencia
   static Future<models.Document> createAttendance(Attendance a) async {
+    final userId = a.usuario; // Debe ser el userId real de Appwrite
+
     final doc = await databases.createDocument(
       databaseId: APPWRITE_DATABASE_ID,
       collectionId: APPWRITE_COLLECTION_ID,
       documentId: ID.unique(),
-      data: a.toMap(),
+      data: a.toMap(), // ahora devuelve {fecha, usuario, lat, lng}
       permissions: [
-        Permission.read(Role.user(a.usuario)),   // Solo el usuario puede leer su asistencia
-        Permission.update(Role.user(a.usuario)), // Solo el usuario puede actualizar su asistencia
-        Permission.delete(Role.user(a.usuario)), // Solo el usuario puede borrar su asistencia
+        Permission.read(Role.any()), // Solo el dueño puede leer
+        Permission.update(Role.user(userId)), // Solo el dueño puede actualizar
+        Permission.delete(Role.user(userId)), // Solo el dueño puede borrar
       ],
     );
     return doc;
   }
 
   // Listar asistencias de un usuario
-  static Future<List<models.Document>> listUserAttendances(String userId) async {
+  static Future<List<models.Document>> listUserAttendances(
+    String userId,
+  ) async {
     final res = await databases.listDocuments(
       databaseId: APPWRITE_DATABASE_ID,
       collectionId: APPWRITE_COLLECTION_ID,
-      queries: [
-        Query.equal('usuario', userId),
-      ],
+      queries: [Query.equal('usuario', userId)],
     );
     return res.documents;
   }
@@ -40,16 +43,17 @@ class AppwriteService {
   // Actualizar asistencia
   static Future<models.Document> updateAttendance(
     String docId,
-    Map<String, dynamic> data,
-    String userId,
+    Attendance a,
   ) async {
+    final userId = a.usuario;
+
     final doc = await databases.updateDocument(
       databaseId: APPWRITE_DATABASE_ID,
       collectionId: APPWRITE_COLLECTION_ID,
       documentId: docId,
-      data: data,
+      data: a.toMap(), // actualiza con {fecha, usuario, lat, lng}
       permissions: [
-        Permission.read(Role.user(userId)),
+        Permission.read(Role.any()),
         Permission.update(Role.user(userId)),
         Permission.delete(Role.user(userId)),
       ],

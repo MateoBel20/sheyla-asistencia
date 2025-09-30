@@ -1,5 +1,6 @@
 import 'package:asistencia_sheyla/src/core/appwrite_service.dart';
 import 'package:asistencia_sheyla/src/core/auth_service.dart';
+import 'package:asistencia_sheyla/src/ui/pages/take_attendance_page.dart';
 import 'package:flutter/material.dart';
 import 'login_page.dart';
 import 'package:appwrite/models.dart' as models;
@@ -28,6 +29,15 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
     if (currentUser != null) {
       try {
         final docs = await AppwriteService.listUserAttendances(currentUser.$id);
+
+        docs.sort((a, b) {
+          final fechaA =
+              DateTime.tryParse(a.data['fecha'] ?? '') ?? DateTime(2000);
+          final fechaB =
+              DateTime.tryParse(b.data['fecha'] ?? '') ?? DateTime(2000);
+          return fechaB.compareTo(fechaA); // descendente
+        });
+
         setState(() {
           _attendances = docs; // puede ser vacío
         });
@@ -81,11 +91,16 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
     }
   }
 
-  void _goToTakeAttendance() {
-    // Aquí más adelante implementaremos la pantalla de "Tomar asistencia"
-    ScaffoldMessenger.of(
+  void _goToTakeAttendance() async {
+    final result = await Navigator.push(
       context,
-    ).showSnackBar(const SnackBar(content: Text("Ir a tomar asistencia 📌")));
+      MaterialPageRoute(builder: (_) => const TakeAttendancePage()),
+    );
+
+    // Si el usuario tomó asistencia, recargar la lista
+    if (result == true) {
+      _loadAttendances();
+    }
   }
 
   @override
@@ -118,6 +133,13 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
                 separatorBuilder: (_, __) => const Divider(),
                 itemBuilder: (context, index) {
                   final item = _attendances[index].data;
+
+                  final lat = item['lat'];
+                  final lng = item['lng'];
+                  final ubicacion = (lat != null && lng != null)
+                      ? '$lat, $lng'
+                      : 'No registrada';
+
                   return ListTile(
                     leading: const Icon(
                       Icons.check_circle,
@@ -125,7 +147,7 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
                     ),
                     title: Text("Fecha: ${item['fecha']}"),
                     subtitle: Text(
-                      "Ubicación: ${item['ubicacion']}\nUsuario: ${item['usuario']}",
+                      "Ubicación: $ubicacion"//\nUsuario: ${item['usuario']}",
                     ),
                   );
                 },
