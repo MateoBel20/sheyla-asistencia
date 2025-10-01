@@ -10,6 +10,9 @@ class AppwriteService {
 
   static final Databases databases = Databases(client);
 
+  static final Storage storage = Storage(client);
+  static const String bucketId = "68dc386200382c217663"; // tu bucket ID
+
   // Crear documento de asistencia
   static Future<models.Document> createAttendance(Attendance a) async {
     final userId = a.usuario; // Debe ser el userId real de Appwrite
@@ -59,5 +62,20 @@ class AppwriteService {
       ],
     );
     return doc;
+  }
+
+  // Subir foto
+  static Future<String> uploadPhoto(String path) async {
+    final result = await storage.createFile(
+      bucketId: bucketId,
+      fileId: ID.unique(),
+      file: InputFile.fromPath(path: path),
+    );
+    return result.$id; // 👈 devolvemos el fileId
+  }
+
+  // Obtener URL pública
+  static String getPhotoUrl(String fileId) {
+    return "$APPWRITE_ENDPOINT/storage/buckets/$bucketId/files/$fileId/view?project=$APPWRITE_PROJECT_ID";
   }
 }

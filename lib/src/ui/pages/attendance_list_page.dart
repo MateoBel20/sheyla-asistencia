@@ -16,6 +16,9 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
   List<models.Document> _attendances = [];
   bool _loading = true;
 
+  /// Cache de URLs temporales de fotos
+  Map<String, String> fotoUrls = {};
+
   @override
   void initState() {
     super.initState();
@@ -30,19 +33,34 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
       try {
         final docs = await AppwriteService.listUserAttendances(currentUser.$id);
 
+        // Orden descendente por fecha
         docs.sort((a, b) {
           final fechaA =
               DateTime.tryParse(a.data['fecha'] ?? '') ?? DateTime(2000);
           final fechaB =
               DateTime.tryParse(b.data['fecha'] ?? '') ?? DateTime(2000);
-          return fechaB.compareTo(fechaA); // descendente
+          return fechaB.compareTo(fechaA);
         });
 
         setState(() {
-          _attendances = docs; // puede ser vacío
+          _attendances = docs;
         });
+
+        // Generar URLs de fotos usando la función getPhotoUrl
+        for (var doc in docs) {
+          final fotoId = doc.data['fotoId'];
+          if (fotoId != null && !fotoUrls.containsKey(fotoId)) {
+            try {
+              final url = AppwriteService.getPhotoUrl(fotoId);
+              setState(() {
+                fotoUrls[fotoId] = url;
+              });
+            } catch (e) {
+              debugPrint("Error al obtener URL de foto: $e");
+            }
+          }
+        }
       } catch (e) {
-        // En caso de error de conexión
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Error al cargar asistencias: $e")),
         );
@@ -51,13 +69,11 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
         });
       }
     } else {
-      // Usuario no logueado (esto no debería pasar)
       setState(() {
         _attendances = [];
       });
     }
 
-    // Siempre desactivar loading
     setState(() => _loading = false);
   }
 
@@ -97,7 +113,6 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
       MaterialPageRoute(builder: (_) => const TakeAttendancePage()),
     );
 
-    // Si el usuario tomó asistencia, recargar la lista
     if (result == true) {
       _loadAttendances();
     }
@@ -140,20 +155,38 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
                       ? '$lat, $lng'
                       : 'No registrada';
 
+                  final fotoId = item['fotoId'];
+                  final fotoUrl =
+                      (fotoId != null && fotoUrls.containsKey(fotoId))
+                      ? fotoUrls[fotoId]
+                      : null;
+
                   return ListTile(
                     leading: const Icon(
                       Icons.check_circle,
                       color: Colors.green,
                     ),
                     title: Text("Fecha: ${item['fecha']}"),
-                    subtitle: Text(
-                      "Ubicación: $ubicacion"//\nUsuario: ${item['usuario']}",
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Ubicación: $ubicacion"),
+                        if (fotoUrl != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: Image.network(
+                              fotoUrl,
+                              height: 100,
+                              width: 100,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                      ],
                     ),
                   );
                 },
               ),
             ),
-
       floatingActionButton: FloatingActionButton(
         onPressed: _goToTakeAttendance,
         child: const Icon(Icons.add),

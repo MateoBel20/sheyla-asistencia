@@ -4,6 +4,7 @@ class Attendance {
   final String usuario;
   final double? lat;
   final double? lng;
+  final String? fotoId; // 👈 Nuevo campo
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -13,6 +14,7 @@ class Attendance {
     required this.usuario,
     this.lat,
     this.lng,
+    this.fotoId, // 👈
     this.createdAt,
     this.updatedAt,
   });
@@ -23,6 +25,7 @@ class Attendance {
       'usuario': usuario,
       'lat': lat,
       'lng': lng,
+      'fotoId': fotoId, // 👈
     };
   }
 
@@ -41,6 +44,7 @@ class Attendance {
       usuario: map['usuario'],
       lat: map['lat'] != null ? (map['lat'] as num).toDouble() : null,
       lng: map['lng'] != null ? (map['lng'] as num).toDouble() : null,
+      fotoId: map['fotoId'], // 👈
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
